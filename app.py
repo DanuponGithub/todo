@@ -8,12 +8,15 @@ app = Flask(__name__)
 # ---- DB URL (SQLite สำหรับรัน local, เปลี่ยนเป็น Postgres อัตโนมัติเมื่อมี DATABASE_URL) ----
 db_url = os.getenv("DATABASE_URL", "sqlite:///todolist.db")
 
-# Render / Heroku style prefix fix และ sslmode=require
+# แปลง driver เป็น psycopg v3 เสมอ
 if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
-if db_url.startswith("postgresql") and "sslmode" not in db_url:
-    connector = "&" if "?" in db_url else "?"
-    db_url = f"{db_url}{connector}sslmode=require"
+    db_url = "postgresql+psycopg://" + db_url[len("postgres://"):]
+elif db_url.startswith("postgresql://") and "+psycopg" not in db_url:
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+# เติม sslmode=require ถ้ายังไม่มี
+if db_url.startswith("postgresql") and "sslmode=" not in db_url:
+    db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
